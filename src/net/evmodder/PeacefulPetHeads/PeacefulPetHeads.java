@@ -96,6 +96,18 @@ public final class PeacefulPetHeads extends JavaPlugin implements Listener{
 				}
 			}, this);
 		}
+		onTame.removeAll(onFeedToTame); // We probably shouldn't roll twice for tame attempt AND tame success?
+		if(!onTame.isEmpty()){
+			getServer().getPluginManager().registerEvents(new Listener(){
+				@EventHandler
+				public void onTame(EntityTameEvent evt){
+					if(onTame.contains(evt.getEntity().getType()) && evt.getOwner() instanceof Player){
+						Player player = (Player)evt.getOwner();
+						doHeadDropRoll(player, evt.getEntity(), evt, player.getInventory().getItemInMainHand());
+					}
+				}
+			}, this);
+		}
 	}
 
 	void doHeadDropRoll(Entity feeder, Entity pet, Event triggerEvt, ItemStack foodItem){
@@ -105,10 +117,9 @@ public final class PeacefulPetHeads extends JavaPlugin implements Listener{
 		final double dropRoll = rand.nextDouble();
 		final HeadRollEvent rollEvent = new HeadRollEvent(feeder, pet, dropChance, dropRoll, dropRoll < dropChance);
 		getServer().getPluginManager().callEvent(rollEvent);
-		getLogger().info("entity: "+pet.getType()+", feeder: "+feeder.getName()+", evt: "+triggerEvt.getEventName());
+		getLogger().fine("entity: "+pet.getType()+", feeder: "+feeder.getName()+", evt: "+triggerEvt.getEventName()+", food: "+foodItem.getType());
 		if(!rollEvent.getDropSuccess()) return;
 
-		feeder.sendMessage(MSG_HEAD_FROM_FEEDING);
 		ListComponent message = new ListComponent();
 		message.addComponent(MSG_HEAD_FROM_FEEDING
 				// Some aliases
@@ -122,23 +133,27 @@ public final class PeacefulPetHeads extends JavaPlugin implements Listener{
 	class RegainHealthListener implements Listener{
 		Player feeder;
 		ItemStack mainHand, offHand;
+		final int amtMainHand, amtOffHand;
 		RegainHealthListener(Player feeder, ItemStack mainHand, ItemStack offHand){
 			this.feeder = feeder;
 			this.mainHand = mainHand;
 			this.offHand = offHand;
+			amtMainHand = mainHand == null ? 0 : mainHand.getAmount();
+			amtOffHand = offHand == null ? 0 : offHand.getAmount();
 		}
 		@EventHandler
 		public void onEntityHeal(EntityRegainHealthEvent evt){
 			if(evt.getRegainReason() == RegainReason.EATING && onFeedToHeal.contains(evt.getEntity().getType())){
-				final int amtMainHand = mainHand == null ? 0 : mainHand.getAmount(), amtOffHand = offHand == null ? 0 : offHand.getAmount();
-				ItemStack newMainHand = feeder.getInventory().getItemInMainHand();
-				ItemStack newOffHand = feeder.getInventory().getItemInOffHand();
-				if(amtMainHand == (newMainHand == null ? 1 : newMainHand.getAmount()+1)){
-					doHeadDropRoll(feeder, evt.getEntity(), evt, mainHand);
-				}
-				else if(amtOffHand == (newOffHand == null ? 1 : newOffHand.getAmount()+1)){
-					doHeadDropRoll(feeder, evt.getEntity(), evt, offHand);
-				}
+				new BukkitRunnable(){@Override public void run(){
+					ItemStack newMainHand = feeder.getInventory().getItemInMainHand();
+					ItemStack newOffHand = feeder.getInventory().getItemInOffHand();
+					if(amtMainHand == (newMainHand == null ? 1 : newMainHand.getAmount()+1)){
+						doHeadDropRoll(feeder, evt.getEntity(), evt, mainHand);
+					}
+					else if(amtOffHand == (newOffHand == null ? 1 : newOffHand.getAmount()+1)){
+						doHeadDropRoll(feeder, evt.getEntity(), evt, offHand);
+					}
+				}}.runTaskLater(PeacefulPetHeads.this, 1);
 			}
 			HandlerList.unregisterAll(this);
 		}
@@ -172,20 +187,7 @@ public final class PeacefulPetHeads extends JavaPlugin implements Listener{
 		if(evt.isCancelled()) return;
 		final ItemStack mainHand = evt.getPlayer().getInventory().getItemInMainHand();
 		final ItemStack offHand = evt.getPlayer().getInventory().getItemInOffHand();
-		
-		if(canFeedToHealForHeadDrop(evt.getRightClicked())){
-			// TODO: Sometimes the food item consumed comes from the offhand, not main hand
-			RegainHealthListener listener = new RegainHealthListener(evt.getPlayer(), mainHand, offHand);
-			getServer().getPluginManager().registerEvents(listener, this);
-			new BukkitRunnable(){@Override public void run(){HandlerList.unregisterAll(listener);}}.runTaskLater(this, 1);
-		}
-		if(canFeedToBreedForHeadDrop(evt.getRightClicked())){
-			Animals animal = (Animals)evt.getRightClicked();
-			ItemStack breedFood = (mainHand != null && (offHand == null || animal.isBreedItem(mainHand) || !animal.isBreedItem(offHand))) ? mainHand : offHand;
-			LoveModeListener listener = new LoveModeListener(breedFood);
-			getServer().getPluginManager().registerEvents(listener, this);
-			new BukkitRunnable(){@Override public void run(){HandlerList.unregisterAll(listener);}}.runTaskLater(this, 1);
-		}
+
 		if(canFeedToTame(evt.getRightClicked())){
 			final int amtMainHand = mainHand == null ? 0 : mainHand.getAmount(), amtOffHand = offHand == null ? 0 : offHand.getAmount();
 			new BukkitRunnable(){@Override public void run(){
@@ -199,13 +201,17 @@ public final class PeacefulPetHeads extends JavaPlugin implements Listener{
 				}
 			}}.runTaskLater(this, 1);
 		}
-	}
-
-	@EventHandler
-	public void onTame(EntityTameEvent evt){
-		if(onTame.contains(evt.getEntity().getType()) && evt.getOwner() instanceof Player){
-			Player player = (Player)evt.getOwner();
-			doHeadDropRoll(player, evt.getEntity(), evt, player.getInventory().getItemInMainHand());
+		else if(canFeedToHealForHeadDrop(evt.getRightClicked())){
+			RegainHealthListener listener = new RegainHealthListener(evt.getPlayer(), mainHand, offHand);
+			getServer().getPluginManager().registerEvents(listener, this);
+			new BukkitRunnable(){@Override public void run(){HandlerList.unregisterAll(listener);}}.runTaskLater(this, 1);
+		}
+		else if(canFeedToBreedForHeadDrop(evt.getRightClicked())){
+			Animals animal = (Animals)evt.getRightClicked();
+			ItemStack breedFood = (mainHand != null && (offHand == null || animal.isBreedItem(mainHand) || !animal.isBreedItem(offHand))) ? mainHand : offHand;
+			LoveModeListener listener = new LoveModeListener(breedFood);
+			getServer().getPluginManager().registerEvents(listener, this);
+			new BukkitRunnable(){@Override public void run(){HandlerList.unregisterAll(listener);}}.runTaskLater(this, 1);
 		}
 	}
 }

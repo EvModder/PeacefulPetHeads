@@ -1,5 +1,5 @@
 # Available substitution tags: ${PLAYER}, ${ENTITY}, ${ITEM}
-message-for-awarding-head: '${PLAYER} was awarded the head of ${ENTITY} by feeding them'
+message-for-awarding-head: '&6${PLAYER}&r was awarded the head of &6${ENTITY}&r by feeding them'
 
 # Note: The drop-chance uses the values of head-drop-rates.txt from the base plugin
 
@@ -9,7 +9,7 @@ message-for-awarding-head: '${PLAYER} was awarded the head of ${ENTITY} by feedi
 
 taming-triggers-head-drop-chance: [wolf, cat, parrot, horse, donkey, mule, llama, trader_llama]
 feeding-to-tame-triggers-head-drop-chance: [wolf, cat, parrot, horse, donkey, mule, llama, trader_llama]
-feeding-to-heal-triggers-head-drop-chance: [horse]
+feeding-to-heal-triggers-head-drop-chance: [wolf, horse]
 feeding-to-breed-triggers-head-drop-chance: 
   - wolf
   - cat
