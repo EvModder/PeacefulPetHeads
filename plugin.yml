@@ -1,0 +1,6 @@
+name: PeacefulPetHeads
+main: net.evmodder.PeacefulPetHeads.PeacefulPetHeads
+author: EvModder/EvDoc
+version: 1.0
+api-version: 1.13
+depend: [DropHeads]
