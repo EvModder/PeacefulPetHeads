@@ -1,24 +1,22 @@
-entities-listed-here-do-not-drop-heads-when-killed: true
-
 # Available substitution tags: ${PLAYER}, ${ENTITY}, ${ITEM}
 message-for-awarding-head: '${PLAYER} was awarded the head of ${ENTITY} by feeding them'
 
-# Animals in this list will have a head-drop calculated when being fed to get healed
-feeding-to-heal-triggers-head-drop-chance: [wolf, cat, parrot, horse, donkey, mule, llama, trader_llama]
+# Note: The drop-chance uses the values of head-drop-rates.txt from the base plugin
 
-# This list works similarly, it is for when they are full-health and are fed to trigger "love mode"
+
+# Note: either list formats works: one line [x,y,z] or multiple lines with -x -y -z
+# Choose whichever you prefer, I've set some example defaults below
+
+taming-triggers-head-drop-chance: [wolf, cat, parrot, horse, donkey, mule, llama, trader_llama]
+feeding-to-tame-triggers-head-drop-chance: [wolf, cat, parrot, horse, donkey, mule, llama, trader_llama]
+feeding-to-heal-triggers-head-drop-chance: [horse]
 feeding-to-breed-triggers-head-drop-chance: 
   - wolf
   - cat
   - horse
   - donkey
-  - mule
   - llama
   - trader_llama
   - turtle
 
-# Finally, a list of mobs to trigger a head drop chance for when tamed
-taming-triggers-head-drop-chance: [parrot, cat]
-
-# Note either list format works, either one line [x,y,z] or multiple lines with -x -y -z
-# I did one of each to show both are possible but you can change them to be the same
+disable-head-drop-from-murder: [wolf, cat, parrot]

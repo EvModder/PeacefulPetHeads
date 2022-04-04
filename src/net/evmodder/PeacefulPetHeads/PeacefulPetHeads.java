@@ -3,14 +3,21 @@ package net.evmodder.PeacefulPetHeads;
 import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Random;
+import org.bukkit.attribute.Attributable;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.entity.Animals;
+import org.bukkit.entity.Damageable;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Tameable;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityEnterLoveModeEvent;
 import org.bukkit.event.entity.EntityRegainHealthEvent;
 import org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason;
@@ -29,7 +36,7 @@ import net.evmodder.EvLib.extras.TellrawUtils.SelectorComponent;
 
 public final class PeacefulPetHeads extends JavaPlugin implements Listener{
 	private FileConfiguration config;
-	private HashSet<EntityType> petsToHeal, petsToBreed, petsToTame;
+	private HashSet<EntityType> onFeedToHeal, onFeedToBreed, onFeedToTame, onTame, disableMurderBehead;
 	private String MSG_HEAD_FROM_FEEDING;
 	private final boolean USE_PLAYER_DISPLAYNAMES = false;//TODO: move to config, when possible
 	private int JSON_LIMIT;
@@ -55,23 +62,23 @@ public final class PeacefulPetHeads extends JavaPlugin implements Listener{
 		}
 	}
 
+	private HashSet<EntityType> getEntityTypesFromStringList(String configKey){
+		HashSet<EntityType> entities = new HashSet<>();
+		for(String entityTypeName : config.getStringList(configKey)){
+			try{entities.add(EntityType.valueOf(entityTypeName.toUpperCase()));}
+			catch(IllegalArgumentException ex){getLogger().severe("Unknown entity in '"+configKey+"': "+entityTypeName);}
+		}
+		return entities;
+	}
+
 	@Override public void onEnable(){
 		reloadConfig();
-		petsToHeal = new HashSet<>();
-		for(String entityTypeName : config.getStringList("feeding-to-heal-triggers-head-drop-chance")){
-			try{petsToHeal.add(EntityType.valueOf(entityTypeName.toUpperCase()));}
-			catch(IllegalArgumentException ex){getLogger().severe("Unknown entity in 'feeding-to-heal' setting: "+entityTypeName);}
-		}
-		petsToBreed = new HashSet<>();
-		for(String entityTypeName : config.getStringList("feeding-to-breed-triggers-head-drop-chance")){
-			try{petsToBreed.add(EntityType.valueOf(entityTypeName.toUpperCase()));}
-			catch(IllegalArgumentException ex){getLogger().severe("Unknown entity in 'feeding-to-breed' setting: "+entityTypeName);}
-		}
-		petsToTame = new HashSet<>();
-		for(String entityTypeName : config.getStringList("taming-triggers-head-drop-chance")){
-			try{petsToTame.add(EntityType.valueOf(entityTypeName.toUpperCase()));}
-			catch(IllegalArgumentException ex){getLogger().severe("Unknown entity in 'taming' setting: "+entityTypeName);}
-		}
+		onFeedToHeal = getEntityTypesFromStringList("feeding-to-heal-triggers-head-drop-chance");
+		onFeedToBreed = getEntityTypesFromStringList("feeding-to-breed-triggers-head-drop-chance");
+		onFeedToTame = getEntityTypesFromStringList("feeding-to-tame-triggers-head-drop-chance");
+		onTame = getEntityTypesFromStringList("taming-triggers-head-drop-chance");
+		disableMurderBehead = getEntityTypesFromStringList("disable-head-drop-from-murder");
+
 		MSG_HEAD_FROM_FEEDING = TextUtils.translateAlternateColorCodes('&', config.getString("message-for-awarding-head",
 				"&6${PLAYER}&r was awarded the head of &6${ENTITY}&r by feeding them"));
 
@@ -79,17 +86,11 @@ public final class PeacefulPetHeads extends JavaPlugin implements Listener{
 		rand = new Random();
 		getServer().getPluginManager().registerEvents(this, this);
 
-		if(config.getBoolean("entities-listed-here-do-not-drop-heads-when-killed", false)){
+		if(!disableMurderBehead.isEmpty()){
 			getServer().getPluginManager().registerEvents(new Listener(){
 				@EventHandler
 				public void onEntityBehead(EntityBeheadEvent evt){
-					if((petsToHeal.contains(evt.getEntityType()) ||
-						petsToBreed.contains(evt.getEntityType()) ||
-						petsToTame.contains(evt.getEntityType())) &&
-							!(evt.getSourceEvent() instanceof EntityRegainHealthEvent) &&
-							!(evt.getSourceEvent() instanceof EntityEnterLoveModeEvent) &&
-							!(evt.getSourceEvent() instanceof EntityTameEvent))
-					{
+					if(evt.getSourceEvent() instanceof EntityDeathEvent && disableMurderBehead.contains(evt.getEntityType())){
 						evt.setCancelled(true);
 					}
 				}
@@ -119,13 +120,25 @@ public final class PeacefulPetHeads extends JavaPlugin implements Listener{
 	}
 	
 	class RegainHealthListener implements Listener{
-		Entity feeder;
-		ItemStack food;
-		RegainHealthListener(Entity feeder, ItemStack food){this.feeder = feeder; this.food = food;}
+		Player feeder;
+		ItemStack mainHand, offHand;
+		RegainHealthListener(Player feeder, ItemStack mainHand, ItemStack offHand){
+			this.feeder = feeder;
+			this.mainHand = mainHand;
+			this.offHand = offHand;
+		}
 		@EventHandler
 		public void onEntityHeal(EntityRegainHealthEvent evt){
-			if(evt.getRegainReason() == RegainReason.EATING && petsToHeal.contains(evt.getEntity().getType())){
-				doHeadDropRoll(feeder, evt.getEntity(), evt, food);
+			if(evt.getRegainReason() == RegainReason.EATING && onFeedToHeal.contains(evt.getEntity().getType())){
+				final int amtMainHand = mainHand == null ? 0 : mainHand.getAmount(), amtOffHand = offHand == null ? 0 : offHand.getAmount();
+				ItemStack newMainHand = feeder.getInventory().getItemInMainHand();
+				ItemStack newOffHand = feeder.getInventory().getItemInOffHand();
+				if(amtMainHand == (newMainHand == null ? 1 : newMainHand.getAmount()+1)){
+					doHeadDropRoll(feeder, evt.getEntity(), evt, mainHand);
+				}
+				else if(amtOffHand == (newOffHand == null ? 1 : newOffHand.getAmount()+1)){
+					doHeadDropRoll(feeder, evt.getEntity(), evt, offHand);
+				}
 			}
 			HandlerList.unregisterAll(this);
 		}
@@ -136,31 +149,61 @@ public final class PeacefulPetHeads extends JavaPlugin implements Listener{
 		LoveModeListener(ItemStack food){this.food = food;}
 		@EventHandler
 		public void onEntityLove(EntityEnterLoveModeEvent evt){
-			if(petsToBreed.contains(evt.getEntity().getType())){
+			if(onFeedToBreed.contains(evt.getEntity().getType())){
 				doHeadDropRoll(evt.getHumanEntity(), evt.getEntity(), evt, food);
 			}
 			HandlerList.unregisterAll(this);
 		}
 	}
 
-	@EventHandler
+	private boolean canFeedToHealForHeadDrop(Entity entity){
+		return onFeedToHeal.contains(entity.getType()) && entity instanceof Damageable && entity instanceof Attributable
+				&& ((Damageable)entity).getHealth() < ((Attributable)entity).getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue();
+	}
+	private boolean canFeedToBreedForHeadDrop(Entity entity){
+		return onFeedToBreed.contains(entity.getType()) && entity instanceof Animals && !((Animals)entity).isLoveMode();
+	}
+	private boolean canFeedToTame(Entity entity){
+		return onFeedToTame.contains(entity.getType()) && entity instanceof Tameable && !((Tameable)entity).isTamed();
+	}
+
+	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onClick(PlayerInteractEntityEvent evt){
-		// TODO: Sometimes the food item consumed comes from the offhand, not main hand!!
-		if(petsToHeal.contains(evt.getRightClicked().getType())){
-			RegainHealthListener listener = new RegainHealthListener(evt.getPlayer(), evt.getPlayer().getInventory().getItemInMainHand());
+		if(evt.isCancelled()) return;
+		final ItemStack mainHand = evt.getPlayer().getInventory().getItemInMainHand();
+		final ItemStack offHand = evt.getPlayer().getInventory().getItemInOffHand();
+		
+		if(canFeedToHealForHeadDrop(evt.getRightClicked())){
+			// TODO: Sometimes the food item consumed comes from the offhand, not main hand
+			RegainHealthListener listener = new RegainHealthListener(evt.getPlayer(), mainHand, offHand);
 			getServer().getPluginManager().registerEvents(listener, this);
 			new BukkitRunnable(){@Override public void run(){HandlerList.unregisterAll(listener);}}.runTaskLater(this, 1);
 		}
-		if(petsToBreed.contains(evt.getRightClicked().getType())){
-			LoveModeListener listener = new LoveModeListener(evt.getPlayer().getInventory().getItemInMainHand());
+		if(canFeedToBreedForHeadDrop(evt.getRightClicked())){
+			Animals animal = (Animals)evt.getRightClicked();
+			ItemStack breedFood = (mainHand != null && (offHand == null || animal.isBreedItem(mainHand) || !animal.isBreedItem(offHand))) ? mainHand : offHand;
+			LoveModeListener listener = new LoveModeListener(breedFood);
 			getServer().getPluginManager().registerEvents(listener, this);
 			new BukkitRunnable(){@Override public void run(){HandlerList.unregisterAll(listener);}}.runTaskLater(this, 1);
+		}
+		if(canFeedToTame(evt.getRightClicked())){
+			final int amtMainHand = mainHand == null ? 0 : mainHand.getAmount(), amtOffHand = offHand == null ? 0 : offHand.getAmount();
+			new BukkitRunnable(){@Override public void run(){
+				ItemStack newMainHand = evt.getPlayer().getInventory().getItemInMainHand();
+				ItemStack newOffHand = evt.getPlayer().getInventory().getItemInOffHand();
+				if(amtMainHand == (newMainHand == null ? 1 : newMainHand.getAmount()+1)){
+					doHeadDropRoll(evt.getPlayer(), evt.getRightClicked(), evt, mainHand);
+				}
+				else if(amtOffHand == (newOffHand == null ? 1 : newOffHand.getAmount()+1)){
+					doHeadDropRoll(evt.getPlayer(), evt.getRightClicked(), evt, offHand);
+				}
+			}}.runTaskLater(this, 1);
 		}
 	}
 
 	@EventHandler
 	public void onTame(EntityTameEvent evt){
-		if(petsToTame.contains(evt.getEntity().getType()) && evt.getOwner() instanceof Player){
+		if(onTame.contains(evt.getEntity().getType()) && evt.getOwner() instanceof Player){
 			Player player = (Player)evt.getOwner();
 			doHeadDropRoll(player, evt.getEntity(), evt, player.getInventory().getItemInMainHand());
 		}
