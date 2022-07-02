@@ -112,7 +112,7 @@ public final class PeacefulPetHeads extends JavaPlugin implements Listener{
 
 	void doHeadDropRoll(Entity feeder, Entity pet, Event triggerEvt, ItemStack foodItem){
 		final double rawDropChance = getDropHeadsPlugin().getDropChanceAPI().getRawDropChance(pet);
-		final double permMod = getDropHeadsPlugin().getDropChanceAPI().getPermsBasedDropRateModifier(feeder);
+		final double permMod = getDropHeadsPlugin().getDropChanceAPI().getPermsBasedMult(feeder);
 		final double dropChance = rawDropChance*permMod;
 		final double dropRoll = rand.nextDouble();
 		final HeadRollEvent rollEvent = new HeadRollEvent(feeder, pet, dropChance, dropRoll, dropRoll < dropChance);
