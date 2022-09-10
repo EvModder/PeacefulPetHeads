@@ -16,9 +16,9 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public class FileIO{// version = X1.0
+public class FileIO{
 	static private final String EV_DIR = "./plugins/EvFolder/";
-	static public String DIR = EV_DIR;//TODO: remove public? (only user: EvLib/extras/WebUtils.java)
+	static private String DIR = EV_DIR;
 	static final int MERGE_EV_DIR_THRESHOLD = 4;
 
 	public static void moveDirectoryContents(File srcDir, File destDir){
@@ -52,9 +52,8 @@ public class FileIO{// version = X1.0
 	}
 
 	static void verifyDir(Plugin evPl){
-		Vector<String> evPlugins = FileIO.installedEvPlugins();
 		final String CUSTOM_DIR = "./plugins/"+evPl.getName()+"/";
-		if(!new File(EV_DIR).exists() && (evPl.getName().equals("DropHeads") || evPlugins.size() < MERGE_EV_DIR_THRESHOLD)){
+		if(!new File(EV_DIR).exists()){
 			DIR = CUSTOM_DIR;
 		}
 		else if(new File(CUSTOM_DIR).exists()){//merge with EvFolder
