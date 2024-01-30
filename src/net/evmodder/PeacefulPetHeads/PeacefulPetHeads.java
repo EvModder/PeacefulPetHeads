@@ -5,7 +5,6 @@ import java.util.HashSet;
 import java.util.Random;
 import org.bukkit.attribute.Attributable;
 import org.bukkit.attribute.Attribute;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Animals;
 import org.bukkit.entity.Damageable;
 import org.bukkit.entity.Entity;
@@ -24,18 +23,18 @@ import org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason;
 import org.bukkit.event.entity.EntityTameEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import net.evmodder.DropHeads.DropHeads;
 import net.evmodder.DropHeads.JunkUtils;
 import net.evmodder.DropHeads.events.EntityBeheadEvent;
 import net.evmodder.DropHeads.events.HeadRollEvent;
 import net.evmodder.EvLib.extras.TextUtils;
+import net.evmodder.EvLib.EvPlugin;
+import net.evmodder.EvLib.FileIO;
 import net.evmodder.EvLib.extras.TellrawUtils.ListComponent;
 import net.evmodder.EvLib.extras.TellrawUtils.SelectorComponent;
 
-public final class PeacefulPetHeads extends JavaPlugin implements Listener{
-	private FileConfiguration config;
+public final class PeacefulPetHeads extends EvPlugin implements Listener{
 	private HashSet<EntityType> onFeedToHeal, onFeedToBreed, onFeedToTame, onTame, disableMurderBehead;
 	private String MSG_HEAD_FROM_FEEDING;
 	private final boolean USE_PLAYER_DISPLAYNAMES = false;//TODO: move to config, when possible
@@ -48,13 +47,7 @@ public final class PeacefulPetHeads extends JavaPlugin implements Listener{
 		return dropheadsPlugin;
 	}
 
-	@Override public FileConfiguration getConfig(){return config;}
-	@Override public void saveConfig(){
-		if(config != null && !FileIO.saveConfig("config-"+getName()+".yml", config)){
-			getLogger().severe("Error while saving plugin configuration file!");
-		}
-	}
-	@Override public void reloadConfig(){
+	@Override public void reloadConfig(){ // Same as EvPlugin, except we use "getDropHeadsPlugin()" instead of "this"
 		InputStream defaultConfig = getClass().getResourceAsStream("/config.yml");
 		if(defaultConfig != null){
 			FileIO.verifyDir(getDropHeadsPlugin());
@@ -71,7 +64,7 @@ public final class PeacefulPetHeads extends JavaPlugin implements Listener{
 		return entities;
 	}
 
-	@Override public void onEnable(){
+	@Override public void onEvEnable(){
 		reloadConfig();
 		onFeedToHeal = getEntityTypesFromStringList("feeding-to-heal-triggers-head-drop-chance");
 		onFeedToBreed = getEntityTypesFromStringList("feeding-to-breed-triggers-head-drop-chance");
@@ -120,13 +113,13 @@ public final class PeacefulPetHeads extends JavaPlugin implements Listener{
 		getLogger().fine("entity: "+pet.getType()+", feeder: "+feeder.getName()+", evt: "+triggerEvt.getEventName()+", food: "+foodItem.getType());
 		if(!rollEvent.getDropSuccess()) return;
 
-		ListComponent message = new ListComponent();
+		final ListComponent message = new ListComponent();
 		message.addComponent(MSG_HEAD_FROM_FEEDING
 				// Some aliases
 				.replace("${PET}", "${ENTITY}").replace("${FEEDER}", "${PLAYER}").replace("${FOOD}", "${ITEM}"));
-		message.replaceRawDisplayTextWithComponent("${ENTITY}", new SelectorComponent(pet.getUniqueId(), USE_PLAYER_DISPLAYNAMES));
-		message.replaceRawDisplayTextWithComponent("${PLAYER}", new SelectorComponent(feeder.getUniqueId(), USE_PLAYER_DISPLAYNAMES));
-		message.replaceRawDisplayTextWithComponent("${ITEM}", JunkUtils.getMurderItemComponent(foodItem, JSON_LIMIT));
+		message.replaceRawTextWithComponent("${ENTITY}", new SelectorComponent(pet.getUniqueId(), USE_PLAYER_DISPLAYNAMES));
+		message.replaceRawTextWithComponent("${PLAYER}", new SelectorComponent(feeder.getUniqueId(), USE_PLAYER_DISPLAYNAMES));
+		message.replaceRawTextWithComponent("${ITEM}", JunkUtils.getMurderItemComponent(foodItem, JSON_LIMIT));
 		getDropHeadsPlugin().getDropChanceAPI().triggerHeadDropEvent(pet, feeder, triggerEvt, foodItem, message);
 	}
 	
