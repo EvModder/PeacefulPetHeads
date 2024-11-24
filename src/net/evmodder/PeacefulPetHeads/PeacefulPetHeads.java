@@ -32,12 +32,10 @@ import net.evmodder.EvLib.extras.TextUtils;
 import net.evmodder.EvLib.EvPlugin;
 import net.evmodder.EvLib.FileIO;
 import net.evmodder.EvLib.extras.TellrawUtils.ListComponent;
-import net.evmodder.EvLib.extras.TellrawUtils.SelectorComponent;
 
 public final class PeacefulPetHeads extends EvPlugin implements Listener{
 	private HashSet<EntityType> onFeedToHeal, onFeedToBreed, onFeedToTame, onTame, disableMurderBehead;
 	private String MSG_HEAD_FROM_FEEDING;
-	private final boolean USE_PLAYER_DISPLAYNAMES = false;//TODO: move to config, when possible
 	private int JSON_LIMIT;
 	private DropHeads dropheadsPlugin = null;
 	private Random rand;
@@ -117,8 +115,8 @@ public final class PeacefulPetHeads extends EvPlugin implements Listener{
 		message.addComponent(MSG_HEAD_FROM_FEEDING
 				// Some aliases
 				.replace("${PET}", "${ENTITY}").replace("${FEEDER}", "${PLAYER}").replace("${FOOD}", "${ITEM}"));
-		message.replaceRawTextWithComponent("${ENTITY}", new SelectorComponent(pet.getUniqueId(), USE_PLAYER_DISPLAYNAMES));
-		message.replaceRawTextWithComponent("${PLAYER}", new SelectorComponent(feeder.getUniqueId(), USE_PLAYER_DISPLAYNAMES));
+		message.replaceRawTextWithComponent("${ENTITY}", JunkUtils.getDisplayNameSelectorComponent(pet));
+		message.replaceRawTextWithComponent("${PLAYER}", JunkUtils.getDisplayNameSelectorComponent(feeder));
 		message.replaceRawTextWithComponent("${ITEM}", JunkUtils.getMurderItemComponent(foodItem, JSON_LIMIT));
 		getDropHeadsPlugin().getDropChanceAPI().triggerHeadDropEvent(pet, feeder, triggerEvt, foodItem, message);
 	}

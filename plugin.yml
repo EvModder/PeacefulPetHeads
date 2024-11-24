@@ -3,6 +3,8 @@ main: net.evmodder.PeacefulPetHeads.PeacefulPetHeads
 author: EvModder
 description: Adds non-deadly means of obtaining pet heads.
 website: https://dev.bukkit.org/projects/dropheads/pages/extras
-version: 1.2
+#1=initial release
+#3=using player display names
+version: 1.3
 api-version: 1.13
 depend: [DropHeads]
