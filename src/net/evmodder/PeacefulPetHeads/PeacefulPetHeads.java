@@ -103,7 +103,7 @@ public final class PeacefulPetHeads extends EvPlugin implements Listener{
 
 	void doHeadDropRoll(Entity feeder, Entity pet, Event triggerEvt, ItemStack foodItem){
 		final double rawDropChance = getDropHeadsPlugin().getDropChanceAPI().getRawDropChance(pet);
-		final double permMod = getDropHeadsPlugin().getDropChanceAPI().getPermsBasedMult(feeder);
+		final double permMod = getDropHeadsPlugin().getDropChanceAPI().getPermissionsMult(pet, feeder);
 		final double dropChance = rawDropChance*permMod;
 		final double dropRoll = rand.nextDouble();
 		final HeadRollEvent rollEvent = new HeadRollEvent(feeder, pet, dropChance, dropRoll, dropRoll < dropChance);
@@ -111,14 +111,16 @@ public final class PeacefulPetHeads extends EvPlugin implements Listener{
 		getLogger().fine("entity: "+pet.getType()+", feeder: "+feeder.getName()+", evt: "+triggerEvt.getEventName()+", food: "+foodItem.getType());
 		if(!rollEvent.getDropSuccess()) return;
 
-		final ListComponent message = new ListComponent();
-		message.addComponent(MSG_HEAD_FROM_FEEDING
-				// Some aliases
-				.replace("${PET}", "${ENTITY}").replace("${FEEDER}", "${PLAYER}").replace("${FOOD}", "${ITEM}"));
-		message.replaceRawTextWithComponent("${ENTITY}", JunkUtils.getDisplayNameSelectorComponent(pet));
-		message.replaceRawTextWithComponent("${PLAYER}", JunkUtils.getDisplayNameSelectorComponent(feeder));
-		message.replaceRawTextWithComponent("${ITEM}", JunkUtils.getMurderItemComponent(foodItem, JSON_LIMIT));
-		getDropHeadsPlugin().getDropChanceAPI().triggerHeadDropEvent(pet, feeder, triggerEvt, foodItem, message);
+		getDropHeadsPlugin().getDropChanceAPI().triggerHeadDropEvent(pet, feeder, triggerEvt, foodItem, ()->{
+			final ListComponent message = new ListComponent();
+			message.addComponent(MSG_HEAD_FROM_FEEDING
+					// Some aliases
+					.replace("${PET}", "${ENTITY}").replace("${FEEDER}", "${PLAYER}").replace("${FOOD}", "${ITEM}"));
+			message.replaceRawTextWithComponent("${ENTITY}", JunkUtils.getDisplayNameSelectorComponent(pet, /*fakeSelector=*/false));
+			message.replaceRawTextWithComponent("${PLAYER}", JunkUtils.getDisplayNameSelectorComponent(feeder, /*fakeSelector=*/false));
+			message.replaceRawTextWithComponent("${ITEM}", JunkUtils.getMurderItemComponent(foodItem, JSON_LIMIT));
+			return message;
+		});
 	}
 	
 	class RegainHealthListener implements Listener{
