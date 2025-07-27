@@ -25,7 +25,7 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import net.evmodder.DropHeads.DropHeads;
-import net.evmodder.DropHeads.JunkUtils;
+import net.evmodder.DropHeads.MiscUtils;
 import net.evmodder.DropHeads.events.EntityBeheadEvent;
 import net.evmodder.DropHeads.events.HeadRollEvent;
 import net.evmodder.EvLib.extras.TextUtils;
@@ -116,9 +116,9 @@ public final class PeacefulPetHeads extends EvPlugin implements Listener{
 			message.addComponent(MSG_HEAD_FROM_FEEDING
 					// Some aliases
 					.replace("${PET}", "${ENTITY}").replace("${FEEDER}", "${PLAYER}").replace("${FOOD}", "${ITEM}"));
-			message.replaceRawTextWithComponent("${ENTITY}", JunkUtils.getDisplayNameSelectorComponent(pet, /*fakeSelector=*/false));
-			message.replaceRawTextWithComponent("${PLAYER}", JunkUtils.getDisplayNameSelectorComponent(feeder, /*fakeSelector=*/false));
-			message.replaceRawTextWithComponent("${ITEM}", JunkUtils.getMurderItemComponent(foodItem, JSON_LIMIT));
+			message.replaceRawTextWithComponent("${ENTITY}", MiscUtils.getDisplayNameSelectorComponent(pet, /*fakeSelector=*/false));
+			message.replaceRawTextWithComponent("${PLAYER}", MiscUtils.getDisplayNameSelectorComponent(feeder, /*fakeSelector=*/false));
+			message.replaceRawTextWithComponent("${ITEM}", MiscUtils.getMurderItemComponent(foodItem, JSON_LIMIT));
 			return message;
 		});
 	}
@@ -166,7 +166,7 @@ public final class PeacefulPetHeads extends EvPlugin implements Listener{
 
 	private boolean canFeedToHealForHeadDrop(Entity entity){
 		return onFeedToHeal.contains(entity.getType()) && entity instanceof Damageable && entity instanceof Attributable
-				&& ((Damageable)entity).getHealth() < ((Attributable)entity).getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue();
+				&& ((Damageable)entity).getHealth() < ((Attributable)entity).getAttribute(Attribute.MAX_HEALTH).getValue();
 	}
 	private boolean canFeedToBreedForHeadDrop(Entity entity){
 		return onFeedToBreed.contains(entity.getType()) && entity instanceof Animals && !((Animals)entity).isLoveMode();
