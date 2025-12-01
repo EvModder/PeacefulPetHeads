@@ -28,10 +28,10 @@ import net.evmodder.DropHeads.DropHeads;
 import net.evmodder.DropHeads.MiscUtils;
 import net.evmodder.DropHeads.events.EntityBeheadEvent;
 import net.evmodder.DropHeads.events.HeadRollEvent;
-import net.evmodder.EvLib.extras.TextUtils;
-import net.evmodder.EvLib.EvPlugin;
+import net.evmodder.EvLib.TextUtils;
+import net.evmodder.EvLib.bukkit.EvPlugin;
 import net.evmodder.EvLib.FileIO;
-import net.evmodder.EvLib.extras.TellrawUtils.ListComponent;
+import net.evmodder.EvLib.bukkit.TellrawUtils.ListComponent;
 
 public final class PeacefulPetHeads extends EvPlugin implements Listener{
 	private HashSet<EntityType> onFeedToHeal, onFeedToBreed, onFeedToTame, onTame, disableMurderBehead;
