@@ -29,28 +29,26 @@ import net.evmodder.DropHeads.MiscUtils;
 import net.evmodder.DropHeads.events.EntityBeheadEvent;
 import net.evmodder.DropHeads.events.HeadRollEvent;
 import net.evmodder.EvLib.TextUtils;
+import net.evmodder.EvLib.bukkit.ConfigUtils;
 import net.evmodder.EvLib.bukkit.EvPlugin;
-import net.evmodder.EvLib.FileIO;
 import net.evmodder.EvLib.bukkit.TellrawUtils.ListComponent;
 
 public final class PeacefulPetHeads extends EvPlugin implements Listener{
 	private HashSet<EntityType> onFeedToHeal, onFeedToBreed, onFeedToTame, onTame, disableMurderBehead;
 	private String MSG_HEAD_FROM_FEEDING;
 	private int JSON_LIMIT;
-	private DropHeads dropheadsPlugin = null;
 	private Random rand;
 
+	private DropHeads dropheadsPlugin;
 	private DropHeads getDropHeadsPlugin(){
 		if(dropheadsPlugin == null) dropheadsPlugin = (DropHeads)getServer().getPluginManager().getPlugin("DropHeads");
 		return dropheadsPlugin;
 	}
-
-	@Override public void reloadConfig(){ // Same as EvPlugin, except we use "getDropHeadsPlugin()" instead of "this"
+	@Override public void reloadConfig(){
+		// Same as EvPlugin, except we use "getDropHeadsPlugin()" instead of "this"
+		ConfigUtils.updateConfigDirName(getDropHeadsPlugin());
 		InputStream defaultConfig = getClass().getResourceAsStream("/config.yml");
-		if(defaultConfig != null){
-			FileIO.verifyDir(getDropHeadsPlugin());
-			config = FileIO.loadConfig(this, "config-"+getName()+".yml", defaultConfig, /*notifyIfNew=*/true);
-		}
+		config = ConfigUtils.loadConfig(this, "config-"+getName()+".yml", defaultConfig, /*notifyIfNew=*/true);
 	}
 
 	private HashSet<EntityType> getEntityTypesFromStringList(String configKey){
